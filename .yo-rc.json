@@ -1,0 +1,11 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "isCreatingSolution": true,
+    "environment": "spo",
+    "version": "1.6.0",
+    "libraryName": "training-webpart-flow",
+    "libraryId": "c40eb218-974e-4263-9847-1f51c038bea7",
+    "packageManager": "npm",
+    "componentType": "webpart"
+  }
+}

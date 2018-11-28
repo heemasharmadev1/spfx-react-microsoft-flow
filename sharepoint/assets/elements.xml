@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Elements xmlns="http://schemas.microsoft.com/sharepoint/" >
+
+
+ <Field ID="{060E50AC-E9C1-4D3C-B1F9-DE0BCAC300F6}"
+           Name="TrainingDate"
+           DisplayName="Date of Training"
+           Type="DateTime"
+           Format="DateOnly"
+           Required="TRUE"
+           Group="SPFx Columns" />
+
+   <Field ID="{943E7530-5E2B-4C02-8259-CCD93A9ECB18}"
+           Name="TrainingStatus"
+           DisplayName="Training Status"
+           Type="Choice"
+           Required="FALSE"
+           Group="SPFx Columns">
+       <Default>In Progess</Default>
+       <CHOICES>
+       <CHOICE>In Progess</CHOICE>
+       <CHOICE>Approved</CHOICE>
+       <CHOICE>Rejected</CHOICE>
+       </CHOICES>
+   </Field>
+
+<Field ID="{120E50AC-E9C1-4D3C-B1F9-DE0BCAC215F4}"
+           Name="TrainingApprover"
+           DisplayName="Training Approver"
+           Type="User"
+           Required="TRUE"
+           UserSelectionMode="PeopleOnly"
+           Group="SPFx Columns" />
+
+
+<ContentType ID="0x010042D0C1C200A14B6887742B6312346C9B" 
+           Name="Training" 
+           Group="Custom Content Type" 
+           Description="SPFx Custom Content Type">
+       <FieldRefs>
+           <FieldRef ID="{fa564e0f-0c70-4ab9-b863-0177e6ddd247}" Name="Title" DisplayName="Training Title" Required="TRUE" />
+           <FieldRef ID="{060E50AC-E9C1-4D3C-B1F9-DE0BCAC300F6}" /> 
+           <FieldRef ID="{943E7530-5E2B-4C02-8259-CCD93A9ECB18}" />
+           <FieldRef ID="{120E50AC-E9C1-4D3C-B1F9-DE0BCAC215F4}" />
+       </FieldRefs>
+   </ContentType>
+
+    <ListInstance
+            CustomSchema="schema.xml"
+            FeatureId="00bfea71-de22-43b2-a848-c05709900100"
+            Title="TrainingList"
+            Description="Custom Traning List Created Using SharePoint Framework"
+            TemplateType="100"
+            Url="Lists/TrainingList">
+     </ListInstance>  
+</Elements>
