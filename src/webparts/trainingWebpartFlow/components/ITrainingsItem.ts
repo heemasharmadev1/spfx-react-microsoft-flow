@@ -1,4 +1,4 @@
-export interface ISPTrainingsItem{
+export interface ITrainingsItem{
     Title: string;
     TrainingDate: Date;
     TrainingStatus: string;
