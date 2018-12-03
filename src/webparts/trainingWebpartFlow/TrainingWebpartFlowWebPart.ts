@@ -12,7 +12,8 @@ import TrainingWebpartFlow from './components/TrainingWebpartFlow';
 import { ITrainingWebpartFlowProps } from './components/ITrainingWebpartFlowProps';
 
 export interface ITrainingWebpartFlowWebPartProps {
-  description: string;
+  //description: string;
+  listName: string;
 }
 
 export default class TrainingWebpartFlowWebPart extends BaseClientSideWebPart<ITrainingWebpartFlowWebPartProps> {
@@ -21,7 +22,10 @@ export default class TrainingWebpartFlowWebPart extends BaseClientSideWebPart<IT
     const element: React.ReactElement<ITrainingWebpartFlowProps > = React.createElement(
       TrainingWebpartFlow,
       {
-        description: this.properties.description
+        //description: this.properties.description
+        listName: this.properties.listName,
+        spHttpClient: this.context.spHttpClient,
+        siteUrl: this.context.pageContext.web.absoluteUrl
       }
     );
 
@@ -47,8 +51,11 @@ export default class TrainingWebpartFlowWebPart extends BaseClientSideWebPart<IT
             {
               groupName: strings.BasicGroupName,
               groupFields: [
-                PropertyPaneTextField('description', {
-                  label: strings.DescriptionFieldLabel
+                // PropertyPaneTextField('description', {
+                //   label: strings.DescriptionFieldLabel
+                // })
+                PropertyPaneTextField('listName',{
+                  label: strings.ListNameFieldLabel
                 })
               ]
             }

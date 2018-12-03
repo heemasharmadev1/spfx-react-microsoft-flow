@@ -1,7 +1,8 @@
 declare interface ITrainingWebpartFlowWebPartStrings {
   PropertyPaneDescription: string;
   BasicGroupName: string;
-  DescriptionFieldLabel: string;
+  //DescriptionFieldLabel: string;
+  ListNameFieldLabel: string;
 }
 
 declare module 'TrainingWebpartFlowWebPartStrings' {
