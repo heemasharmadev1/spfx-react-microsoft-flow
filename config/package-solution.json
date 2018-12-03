@@ -3,13 +3,13 @@
   "solution": {
     "name": "training-webpart-flow-client-side-solution",
     "id": "c40eb218-974e-4263-9847-1f51c038bea7",
-    "version": "1.0.0.0",
+    "version": "3.0.0.0",
     "includeClientSideAssets": true,
     "features": [{
       "title": "Training DEMO",
       "description": "Training DEMO",
       "id": "123fe225-ced0-1234-b564-8dad5c6c6e24", 
-      "version": "1.0.0.0",
+      "version": "3.0.0.0",
       "assets": {
         "elementManifests": [
           "elements.xml"

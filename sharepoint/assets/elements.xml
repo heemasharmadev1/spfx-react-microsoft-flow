@@ -2,15 +2,15 @@
 <Elements xmlns="http://schemas.microsoft.com/sharepoint/" >
 
 
- <Field ID="{060E50AC-E9C1-4D3C-B1F9-DE0BCAC300F6}"
+ <Field ID="{060E50AC-E9C1-4D3C-B1F9-DE0BCAC300F7}"
            Name="TrainingDate"
            DisplayName="Date of Training"
            Type="DateTime"
            Format="DateOnly"
-           Required="TRUE"
+           Required="FALSE"
            Group="SPFx Columns" />
 
-   <Field ID="{943E7530-5E2B-4C02-8259-CCD93A9ECB18}"
+   <Field ID="{943E7530-5E2B-4C02-8259-CCD93A9ECB19}"
            Name="TrainingStatus"
            DisplayName="Training Status"
            Type="Choice"
@@ -33,7 +33,7 @@
            Group="SPFx Columns" />
 
 
-<ContentType ID="0x010042D0C1C200A14B6887742B6312346C9B" 
+<ContentType ID="0x010042D0C1C200A14B6887742B6312346C9C" 
            Name="Training" 
            Group="Custom Content Type" 
            Description="SPFx Custom Content Type">
@@ -48,9 +48,9 @@
     <ListInstance
             CustomSchema="schema.xml"
             FeatureId="00bfea71-de22-43b2-a848-c05709900100"
-            Title="TrainingList"
+            Title="Training List1"
             Description="Custom Traning List Created Using SharePoint Framework"
             TemplateType="100"
-            Url="Lists/TrainingList">
+            Url="Lists/TrainingList1">
      </ListInstance>  
 </Elements>
