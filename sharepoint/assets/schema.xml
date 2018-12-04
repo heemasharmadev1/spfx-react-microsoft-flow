@@ -11,6 +11,7 @@
        <RowLimit Paged="TRUE">30</RowLimit>
        <Toolbar Type="Standard" />
        <ViewFields>
+         <FieldRef Name="TrainingId"></FieldRef>
          <FieldRef Name="LinkTitle"></FieldRef>
          <FieldRef Name="TrainingDate"></FieldRef>
          <FieldRef Name="TrainingStatus"></FieldRef>

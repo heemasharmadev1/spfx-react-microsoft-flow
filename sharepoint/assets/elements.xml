@@ -32,6 +32,13 @@
            UserSelectionMode="PeopleOnly"
            Group="SPFx Columns" />
 
+ <Field ID="{13b3652a-d543-465d-91cb-a9d625637855}"
+           Name="TrainingId"
+           DisplayName="Training ID"
+           Type="Number"
+           Required="FALSE"
+           Group="SPFx Columns" />
+
 
 <ContentType ID="0x010042D0C1C200A14B6887742B6312346C9C" 
            Name="Training" 
@@ -42,6 +49,7 @@
            <FieldRef ID="{060E50AC-E9C1-4D3C-B1F9-DE0BCAC300F6}" /> 
            <FieldRef ID="{943E7530-5E2B-4C02-8259-CCD93A9ECB18}" />
            <FieldRef ID="{120E50AC-E9C1-4D3C-B1F9-DE0BCAC215F4}" />
+           <FieldRef ID="{13b3652a-d543-465d-91cb-a9d625637855}"/>
        </FieldRefs>
    </ContentType>
 

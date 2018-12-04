@@ -5,24 +5,36 @@ import { escape } from '@microsoft/sp-lodash-subset';
 import {ITrainingWebpartFlowProps} from './ITrainingWebpartFlowProps';
 import {ITrainingWebpartFlowState} from './ITrainingWebpartFlowState';
 import { ITrainingsItem } from './ITrainingsItem';
-import { SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
+import { SPHttpClient, SPHttpClientResponse, SPHttpClientConfiguration } from '@microsoft/sp-http';
 
 
 export default class TrainingWebpartFlow extends React.Component<ITrainingWebpartFlowProps, ITrainingWebpartFlowState> {
+  private listItemEntityTypeName: string = undefined;
+
   public constructor(props:ITrainingWebpartFlowProps,state:ITrainingWebpartFlowState){
     super(props);
     this.state = {
-      status: 'Ready',
+      status: this.listNotConfigured(this.props) ? 'Please configure list in Web Part properties' : 'Ready',
       items:[]
       };
+  }
+
+  public componentWillReceiveProps(nextProps: ITrainingWebpartFlowProps): void {
+    this.listItemEntityTypeName = undefined;
+    this.setState({
+      status: this.listNotConfigured(nextProps) ? 'Please configure list in Web Part properties' : 'Ready',
+      items: []
+    });
   }
 
   public render(): React.ReactElement<ITrainingWebpartFlowProps> {
     const items: JSX.Element[] = this.state.items.map((item: ITrainingsItem, i:number):JSX.Element => {
       return(
-        <li>{item.Title} ({item.TrainingApprover}) ({item.TrainingDate}) | {item.TrainingStatus}</li>
+        <li>{item.Title} ({item.TrainingId}))</li>
       );
     });
+
+    //const disabled: string = this.listNotConfigured(this.props) ? styles.disabled : '';
 
     return (
       <div className={ styles.trainingWebpartFlow }>
@@ -30,7 +42,7 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
           <div className={ styles.row }>
             <div className={ styles.column }>
               <span className={ styles.title }>YaY SharePointers!</span>
-              <p className={ styles.subTitle }>CRUD operations using React + SPFx + PnP Js + Ms Flow.</p>
+              <p className={ styles.subTitle }>CRUD operations using React + SPFx + Ms Flow.</p>
               {/* <p className={ styles.description }>{escape(this.props.description)}</p> */}
               <p className={ styles.description }>{escape(this.props.listName)}</p>
               
@@ -73,21 +85,217 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
   }
 
   public componentDidMount(){
-    debugger;
     //this._getListTrainings();
   }
 
   private createItem():void{  
+    debugger;
+    this.setState({
+      status: 'Creating item...',
+      items: []
+    });
+
+    const body:string = JSON.stringify({
+      'Title':`Item ${new Date()}`
+    });
+
+    this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items`,SPHttpClient.configurations.v1,
+    {
+      headers:{
+        'Accept': 'application/json;odata=nometadata',  
+      'Content-type': 'application/json;odata=nometadata',  
+      'odata-version': ''
+      },
+      body : body
+    })
+    .then((response:SPHttpClientResponse):Promise<ITrainingsItem> => {
+      return response.json();
+    })
+    .then((item: ITrainingsItem):void => {
+      this.setState({
+        status: `Item '${item.Title}' (Training ID: ${item.TrainingId} successfully created)`,
+        items: []
+      });
+    },(error : any): void =>{
+        this.setState({
+          status: 'Error while creating the item: '+error,
+          items: []
+        });
+    });
   }
   private readItem():void{  
+    this.setState({
+      status: 'Loading items...',
+      items: []
+    });
+    
+    this.getLatestItemID()
+    .then((itemId: number):Promise<SPHttpClientResponse> => {
+      if(itemId === -1){
+        throw new Error('No items found in the list');
+      }
+      this.setState({
+        status: `Loading information about item ID: ${itemId}...`,
+        items: []
+      });
+      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle(${this.props.listName})/items(${itemId})?$select=Title,TrainingId`,
+      SPHttpClient.configurations.v1,
+      {
+        headers: {  
+          'Accept': 'application/json;odata=nometadata',  
+          'odata-version': ''  
+        } 
+      });
+    })
+    .then((response:SPHttpClientResponse):Promise<ITrainingsItem> => {
+      return response.json();
+    })
+    .then((item:ITrainingsItem):void => {
+      this.setState({
+        status: `Item ID: ${item.TrainingId}, Title: ${item.Title}`,  
+        items: [] 
+      });
+    }, (error: any): void => {
+        this.setState({  
+          status: 'Loading latest item failed with error: ' + error,  
+          items: []
+      });
+    });
   }
   private updateItem():void{  
+    this.setState({
+      status: 'Loading latest items...',
+      items: []
+    });
+    let latestItemId: number = undefined;
+    this.getLatestItemID()
+    .then((itemId:number):Promise<SPHttpClientResponse> => {
+      if(itemId === -1)
+      {
+        throw new Error('No items found in the list');
+      }
+      latestItemId = itemId;
+      this.setState({
+        status: `Loading information about item ID: ${latestItemId}...`,  
+        items: []
+      });
+      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${latestItemId})?$select=Title,TrainingId`,
+      SPHttpClient.configurations.v1,
+      {
+        headers: {  
+          'Accept': 'application/json;odata=nometadata',  
+          'odata-version': ''  
+        } 
+      });
+    })
+    .then((response:SPHttpClientResponse):Promise<ITrainingsItem> => {
+      return response.json();
+    })
+    .then((item: ITrainingsItem): void => {
+      this.setState({  
+        status: 'Loading latest items...',  
+        items: []
+      });
+    
+    const body: string = JSON.stringify({  
+      'Title': `Updated Item ${new Date()}`  
+    });
+
+    this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${item.TrainingId})`,  
+        SPHttpClient.configurations.v1,  
+        {  
+          headers: {  
+            'Accept': 'application/json;odata=nometadata',  
+            'Content-type': 'application/json;odata=nometadata',  
+            'odata-version': '',  
+            'IF-MATCH': '*',  
+            'X-HTTP-Method': 'MERGE'  
+          },  
+          body: body  
+        })  
+        .then((response: SPHttpClientResponse): void => {  
+          this.setState({  
+            status: `Item with ID: ${latestItemId} successfully updated`,  
+            items: []  
+          });  
+        }, (error: any): void => {  
+          this.setState({  
+            status: `Error updating item: ${error}`,  
+            items: []  
+          });  
+        }); 
+      });
   }
   private deleteItem():void{  
+    if (!window.confirm('Are you sure you want to delete the latest item?')) {  
+      return;  
+    }  
+    
+    this.setState({  
+      status: 'Loading latest items...',  
+      items: []  
+    });  
+    
+    let latestItemId: number = undefined;  
+    let etag: string = undefined;  
+    this.getLatestItemID()  
+      .then((itemId: number): Promise<SPHttpClientResponse> => {  
+        if (itemId === -1) {  
+          throw new Error('No items found in the list');  
+        }  
+    
+        latestItemId = itemId;  
+        this.setState({  
+          status: `Loading information about item ID: ${latestItemId}...`,  
+          items: []  
+        });  
+    
+        return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${latestItemId})?$select=TrainingId`,  
+          SPHttpClient.configurations.v1,  
+          {  
+            headers: {  
+              'Accept': 'application/json;odata=nometadata',  
+              'odata-version': ''  
+            }  
+          });  
+      })  
+      .then((response: SPHttpClientResponse): Promise<ITrainingsItem> => {  
+        etag = response.headers.get('ETag');  
+        return response.json();  
+      })  
+      .then((item: ITrainingsItem): Promise<SPHttpClientResponse> => {  
+        this.setState({  
+          status: `Deleting item with ID: ${latestItemId}...`,  
+          items: []  
+        });  
+    
+        return this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${item.TrainingId})`,  
+          SPHttpClient.configurations.v1,  
+          {  
+            headers: {  
+              'Accept': 'application/json;odata=nometadata',  
+              'Content-type': 'application/json;odata=verbose',  
+              'odata-version': '',  
+              'IF-MATCH': etag,  
+              'X-HTTP-Method': 'DELETE'  
+            }  
+          });  
+      })  
+      .then((response: SPHttpClientResponse): void => {  
+        this.setState({  
+          status: `Item with ID: ${latestItemId} successfully deleted`,  
+          items: []  
+        });  
+      }, (error: any): void => {  
+        this.setState({  
+          status: `Error deleting item: ${error}`,  
+          items: []  
+        });  
+      });  
   }
   private getLatestItemID(): Promise<number>{
     return new Promise<number>((resolve:(itemId:number) => void, reject:(error:any)=>void):void => {
-      this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items?$orderby=Id desc&$top=1&$select=id`,
+      this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items?$orderby=TrainingId desc&$top=1&$select=TrainingId`,
       SPHttpClient.configurations.v1,
       {
         headers:{
@@ -109,5 +317,10 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
         }
       });
     });
+  }
+  private listNotConfigured(props: ITrainingWebpartFlowProps): boolean{
+    return props.listName === undefined ||
+      props.listName === null ||
+      props.listName.length === 0;
   }
 }

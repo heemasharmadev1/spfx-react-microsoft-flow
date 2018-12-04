@@ -3,4 +3,5 @@ export interface ITrainingsItem{
     TrainingDate: Date;
     TrainingStatus: string;
     TrainingApprover: string;
+    TrainingId: number;
 }
