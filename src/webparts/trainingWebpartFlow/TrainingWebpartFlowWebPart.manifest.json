@@ -20,7 +20,7 @@
     "description": { "default": "This creates a custom list in spfx using the react js and microsoft flow" },
     "officeFabricIconFontName": "Page",
     "properties": {
-      "description": "TrainingWebpartFlow"
+      "description": "TrainingWebpartFlow"      
     }
   }]
 }

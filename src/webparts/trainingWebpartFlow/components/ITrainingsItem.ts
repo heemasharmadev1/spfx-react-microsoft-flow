@@ -1,7 +1,7 @@
 export interface ITrainingsItem{
-    Title: string;
+    Title?: string;
     TrainingDate: Date;
     TrainingStatus: string;
     TrainingApprover: string;
-    TrainingId: number;
+    Id: number;
 }

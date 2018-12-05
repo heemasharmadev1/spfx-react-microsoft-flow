@@ -5,7 +5,7 @@ import { escape } from '@microsoft/sp-lodash-subset';
 import {ITrainingWebpartFlowProps} from './ITrainingWebpartFlowProps';
 import {ITrainingWebpartFlowState} from './ITrainingWebpartFlowState';
 import { ITrainingsItem } from './ITrainingsItem';
-import { SPHttpClient, SPHttpClientResponse, SPHttpClientConfiguration } from '@microsoft/sp-http';
+import { SPHttpClient, SPHttpClientResponse, SPHttpClientConfiguration, IAadTokenProviderConfiguration } from '@microsoft/sp-http';
 
 
 export default class TrainingWebpartFlow extends React.Component<ITrainingWebpartFlowProps, ITrainingWebpartFlowState> {
@@ -30,11 +30,11 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
   public render(): React.ReactElement<ITrainingWebpartFlowProps> {
     const items: JSX.Element[] = this.state.items.map((item: ITrainingsItem, i:number):JSX.Element => {
       return(
-        <li>{item.Title} ({item.TrainingId}))</li>
+        <li>{item.Title} ({item.Id}))</li>
       );
     });
 
-    //const disabled: string = this.listNotConfigured(this.props) ? styles.disabled : '';
+    const disabled: string = this.listNotConfigured(this.props) ? styles.disabled : '';
 
     return (
       <div className={ styles.trainingWebpartFlow }>
@@ -48,21 +48,29 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
               
               <div className={`ms-Grid-row ms-bgColor-themeDark ms-fontColor-white ${styles.row}`}>
                 <div className='ms-Grid-col ms-u-lg10 ms-u-xl8 ms-u-xlPush2 ms-u-lgPush1'>  
-                  <a href="#" className={`${styles.button}`} onClick={() => this.createItem()}>  
+                  <a href="#" className={`${styles.button} ${disabled}`} onClick={() => this.createItem()}>  
                     <span className={styles.label}>Create item</span>  
                   </a>   
-                  <a href="#" className={`${styles.button}`} onClick={() => this.readItem()}>  
+                  <a href="#" className={`${styles.button} ${disabled}`} onClick={() => this.readItem()}>  
                     <span className={styles.label}>Read item</span>  
                   </a>  
                 </div>  
               </div>  
-              
+
+              <div className={`ms-Grid-row ms-bgColor-themeDark ms-fontColor-white ${styles.row}`}>
+                <div className='ms-Grid-col ms-u-lg10 ms-u-xl8 ms-u-xlPush2 ms-u-lgPush1'>
+                  <a href="#" className={`${styles.button} ${disabled}`} onClick={() => this.readItems()}>
+                    <span className={styles.label}>Read all items</span>
+                  </a>
+                </div>
+              </div>
+
               <div className={`ms-Grid-row ms-bgColor-themeDark ms-fontColor-white ${styles.row}`}>  
                 <div className='ms-Grid-col ms-u-lg10 ms-u-xl8 ms-u-xlPush2 ms-u-lgPush1'>  
-                  <a href="#" className={`${styles.button}`} onClick={() => this.updateItem()}>  
+                  <a href="#" className={`${styles.button} ${disabled}`} onClick={() => this.updateItem()}>  
                     <span className={styles.label}>Update item</span>  
                   </a>   
-                  <a href="#" className={`${styles.button}`} onClick={() => this.deleteItem()}>  
+                  <a href="#" className={`${styles.button} ${disabled}`} onClick={() => this.deleteItem()}>  
                     <span className={styles.label}>Delete item</span>  
                   </a>  
                 </div>  
@@ -88,6 +96,36 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
     //this._getListTrainings();
   }
 
+  //This function reads all the items from the TrainingList
+  private readItems(): void {
+    this.setState({
+      status: 'Loading all items...',
+      items: []
+    });
+    this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items?$select=Title,Id`,
+      SPHttpClient.configurations.v1,
+      {
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'odata-version': ''
+        }
+      })
+      .then((response: SPHttpClientResponse): Promise<{ value: ITrainingsItem[] }> => {
+        return response.json();
+      })
+      .then((response: { value: ITrainingsItem[] }): void => {
+        this.setState({
+          status: `Successfully loaded ${response.value.length} items`,
+          items: response.value
+        });
+      }, (error: any): void => {
+        this.setState({
+          status: 'Loading all items failed with error: ' + error,
+          items: []
+        });
+      });
+  }
+  //This function creates an item in the TrainingList
   private createItem():void{  
     debugger;
     this.setState({
@@ -95,34 +133,42 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
       items: []
     });
 
-    const body:string = JSON.stringify({
-      'Title':`Item ${new Date()}`
-    });
-
-    this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items`,SPHttpClient.configurations.v1,
-    {
-      headers:{
-        'Accept': 'application/json;odata=nometadata',  
-      'Content-type': 'application/json;odata=nometadata',  
-      'odata-version': ''
-      },
-      body : body
+    this.getListItemEntityTypeName()
+    .then((listItemEntityTypeName: string): Promise<SPHttpClientResponse> => {
+      const body: string = JSON.stringify({
+        '__metadata': {
+          'type': listItemEntityTypeName
+        },
+        'Title': `Item ${new Date()}`
+      });
+      return this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items`,
+        SPHttpClient.configurations.v1,
+        {
+          headers: {
+            'Accept': 'application/json;odata=nometadata',
+            'Content-type': 'application/json;odata=verbose',
+            'odata-version': ''
+          },
+          body: body
+        });
     })
-    .then((response:SPHttpClientResponse):Promise<ITrainingsItem> => {
+    .then((response: SPHttpClientResponse): Promise<ITrainingsItem> => {
       return response.json();
     })
-    .then((item: ITrainingsItem):void => {
+    .then((item: ITrainingsItem): void => {
       this.setState({
-        status: `Item '${item.Title}' (Training ID: ${item.TrainingId} successfully created)`,
+        status: `Item '${item.Title}' (ID: ${item.Id}) successfully created`,
         items: []
       });
-    },(error : any): void =>{
-        this.setState({
-          status: 'Error while creating the item: '+error,
-          items: []
-        });
+    }, (error: any): void => {
+      this.setState({
+        status: 'Error while creating the item: ' + error,
+        items: []
+      });
     });
   }
+
+  //This function reads an item in the TrainingList
   private readItem():void{  
     this.setState({
       status: 'Loading items...',
@@ -138,7 +184,7 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
         status: `Loading information about item ID: ${itemId}...`,
         items: []
       });
-      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle(${this.props.listName})/items(${itemId})?$select=Title,TrainingId`,
+      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle(${this.props.listName})/items(${itemId})?$select=Title,Id`,
       SPHttpClient.configurations.v1,
       {
         headers: {  
@@ -152,7 +198,7 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
     })
     .then((item:ITrainingsItem):void => {
       this.setState({
-        status: `Item ID: ${item.TrainingId}, Title: ${item.Title}`,  
+        status: `Item ID: ${item.Id}, Title: ${item.Title}`,  
         items: [] 
       });
     }, (error: any): void => {
@@ -162,70 +208,83 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
       });
     });
   }
+
+  //This function updates an item in the TrainingList
   private updateItem():void{  
     this.setState({
       status: 'Loading latest items...',
       items: []
     });
     let latestItemId: number = undefined;
-    this.getLatestItemID()
-    .then((itemId:number):Promise<SPHttpClientResponse> => {
-      if(itemId === -1)
-      {
+    let etag: string = undefined;
+    let listItemEntityTypeName: string = undefined;
+
+    this.getListItemEntityTypeName()
+    .then((listItemType: string): Promise<number> => {
+      listItemEntityTypeName = listItemType;
+      return this.getLatestItemID();
+    })
+    .then((itemId: number): Promise<SPHttpClientResponse> => {
+      if (itemId === -1) {
         throw new Error('No items found in the list');
       }
+
       latestItemId = itemId;
       this.setState({
-        status: `Loading information about item ID: ${latestItemId}...`,  
+        status: `Loading information about item ID: ${latestItemId}...`,
         items: []
       });
-      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${latestItemId})?$select=Title,TrainingId`,
-      SPHttpClient.configurations.v1,
-      {
-        headers: {  
-          'Accept': 'application/json;odata=nometadata',  
-          'odata-version': ''  
-        } 
-      });
+      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${latestItemId})?$select=Id`,
+        SPHttpClient.configurations.v1,
+        {
+          headers: {
+            'Accept': 'application/json;odata=nometadata',
+            'odata-version': ''
+          }
+        });
     })
-    .then((response:SPHttpClientResponse):Promise<ITrainingsItem> => {
+    .then((response: SPHttpClientResponse): Promise<ITrainingsItem> => {
+      etag = response.headers.get('ETag');
       return response.json();
     })
-    .then((item: ITrainingsItem): void => {
-      this.setState({  
-        status: 'Loading latest items...',  
+    .then((item: ITrainingsItem): Promise<SPHttpClientResponse> => {
+      this.setState({
+        status: `Updating item with ID: ${latestItemId}...`,
         items: []
       });
-    
-    const body: string = JSON.stringify({  
-      'Title': `Updated Item ${new Date()}`  
-    });
-
-    this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${item.TrainingId})`,  
-        SPHttpClient.configurations.v1,  
-        {  
-          headers: {  
-            'Accept': 'application/json;odata=nometadata',  
-            'Content-type': 'application/json;odata=nometadata',  
-            'odata-version': '',  
-            'IF-MATCH': '*',  
-            'X-HTTP-Method': 'MERGE'  
-          },  
-          body: body  
-        })  
-        .then((response: SPHttpClientResponse): void => {  
-          this.setState({  
-            status: `Item with ID: ${latestItemId} successfully updated`,  
-            items: []  
-          });  
-        }, (error: any): void => {  
-          this.setState({  
-            status: `Error updating item: ${error}`,  
-            items: []  
-          });  
-        }); 
+      const body: string = JSON.stringify({
+        '__metadata': {
+          'type': listItemEntityTypeName
+        },
+        'Title': `Item ${new Date()}`
       });
+      return this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${item.Id})`,
+        SPHttpClient.configurations.v1,
+        {
+          headers: {
+            'Accept': 'application/json;odata=nometadata',
+            'Content-type': 'application/json;odata=verbose',
+            'odata-version': '',
+            'IF-MATCH': etag,
+            'X-HTTP-Method': 'MERGE'
+          },
+          body: body
+        });
+    })
+    .then((response: SPHttpClientResponse): void => {
+      this.setState({
+        status: `Item with ID: ${latestItemId} successfully updated`,
+        items: []
+      });
+    }, (error: any): void => {
+      this.setState({
+        status: `Error updating item: ${error}`,
+        items: []
+      });
+    });
   }
+
+  //This function deletes an item from the TrainingList
   private deleteItem():void{  
     if (!window.confirm('Are you sure you want to delete the latest item?')) {  
       return;  
@@ -250,7 +309,7 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
           items: []  
         });  
     
-        return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${latestItemId})?$select=TrainingId`,  
+        return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${latestItemId})?$select=Id`,  
           SPHttpClient.configurations.v1,  
           {  
             headers: {  
@@ -269,7 +328,7 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
           items: []  
         });  
     
-        return this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${item.TrainingId})`,  
+        return this.props.spHttpClient.post(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${item.Id})`,  
           SPHttpClient.configurations.v1,  
           {  
             headers: {  
@@ -295,7 +354,7 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
   }
   private getLatestItemID(): Promise<number>{
     return new Promise<number>((resolve:(itemId:number) => void, reject:(error:any)=>void):void => {
-      this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items?$orderby=TrainingId desc&$top=1&$select=TrainingId`,
+      this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items?$orderby=Id desc&$top=1&$select=Id`,
       SPHttpClient.configurations.v1,
       {
         headers:{
@@ -322,5 +381,33 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
     return props.listName === undefined ||
       props.listName === null ||
       props.listName.length === 0;
+  }
+
+  private getListItemEntityTypeName(): Promise<string>{
+    return new Promise<string>((resolve: (listItemEntityTypeName:string) => void, reject: (error:any)=> void):void =>{
+      if(this.listItemEntityTypeName)
+      {
+        resolve(this.listItemEntityTypeName);
+        return;
+      }
+
+      this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')?$select=ListItemEntityTypeFullName`,
+        SPHttpClient.configurations.v1,
+        {
+          headers: {
+            'Accept': 'application/json;odata=nometadata',
+            'odata-version': ''
+          }
+        })
+        .then((response: SPHttpClientResponse): Promise<{ ListItemEntityTypeFullName: string }> => {
+          return response.json();
+        }, (error: any): void => {
+          reject(error);
+        })
+        .then((response: { ListItemEntityTypeFullName: string }): void => {
+          this.listItemEntityTypeName = response.ListItemEntityTypeFullName;
+          resolve(this.listItemEntityTypeName);
+        });
+    });
   }
 }
