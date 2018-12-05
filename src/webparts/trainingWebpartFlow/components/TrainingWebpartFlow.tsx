@@ -184,7 +184,7 @@ export default class TrainingWebpartFlow extends React.Component<ITrainingWebpar
         status: `Loading information about item ID: ${itemId}...`,
         items: []
       });
-      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle(${this.props.listName})/items(${itemId})?$select=Title,Id`,
+      return this.props.spHttpClient.get(`${this.props.siteUrl}/_api/web/lists/getbytitle('${this.props.listName}')/items(${itemId})?$select=Title,Id`,
       SPHttpClient.configurations.v1,
       {
         headers: {  
